@@ -1,0 +1,24 @@
+seed: 42
+# Initial experiment settings; adjust after checking throughput and training curves.
+dataset:
+  name: roneneldan/TinyStories
+  max_train_examples: 100000
+  validation_examples: 2000
+  context_length: 256
+  vocab_size: 8000
+model:
+  n_layers: 4
+  d_model: 256
+  n_heads: 4
+  d_ff: 1024
+  dropout: 0.1
+  max_seq_len: 256
+  tie_embeddings: true
+training:
+  batch_size: 32
+  learning_rate: 0.0003
+  weight_decay: 0.1
+  grad_clip_norm: 1.0
+  precision: bf16
+  eval_interval: 500
+  checkpoint_interval: 1000

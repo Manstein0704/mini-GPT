@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mini-gpt-from-scratch"
+version = "0.1.0"
+description = "Educational decoder-only Transformer language model built from scratch"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.2",
+  "datasets>=2.18",
+  "tokenizers>=0.15",
+  "numpy>=1.24",
+  "tqdm>=4.66",
+  "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.5"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100

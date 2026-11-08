@@ -50,8 +50,10 @@ def main() -> None:
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
-    prompt = "Hello, "
-    input_ids = tokenizer.encode(prompt).ids
+    prompt = "Once upon a time"
+    input_ids = tokenizer.encode(prompt, add_special_tokens=False).ids
+    bos_id = tokenizer.token_to_id("<bos>")
+    input_ids = [bos_id] + input_ids
 
     input_ids = torch.tensor(
         [input_ids],

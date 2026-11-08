@@ -7,6 +7,9 @@ from minigpt.model import GPTLanguageModel
 from minigpt.data import get_batch
 import random
 from pathlib import Path
+import csv 
+from pathlib import Path
+from minigpt.evaluate import estimate_loss
 
 
 
@@ -36,12 +39,25 @@ def main():
         mode="r"
     )
 
+    val_data = np.memmap(
+        "artifacts/val.bin",
+        dtype=np.uint16,
+        mode="r"
+    )
+
+    EVALINTERVAL = 100
+    EVAL_ITERS = 20
+
+    log_path = Path("artifacts/logs/loss.csv")
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    
+
     model = GPTLanguageModel(
         vocab_size=8000,
-        embed_dim=256,
+        embed_dim=512,
         block_size=BLOCK_SIZE,
-        num_heads=4,
-        num_blocks=4,
+        num_heads=8,
+        num_blocks=8,
         dropout=0.1
     ).to(device)
 
@@ -52,22 +68,67 @@ def main():
 
     model.train()
 
-    for step in range(MAX_STEPS):
-        optimizer.zero_grad(set_to_none=True)
-        X, Y = get_batch(
-            train_data,
-            batch_size=BATCH_SIZE,
-            block_size=BLOCK_SIZE,
-        )
-        X = X.to(device)
-        Y = Y.to(device)
+    with open(log_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["step", "train_loss", "val_loss"])
 
-        logits, loss = model(X, Y)
-        print(f"Step {step+1}/{MAX_STEPS} | Loss:{loss.item():.4f}")
-        loss.backward()
-        optimizer.step()
+        for step in range(MAX_STEPS):
+            # Training
+            model.train()
 
-    save_path = Path("artifacts/checkpoints/minigpt_step0100.pt")
+            X, Y = get_batch(
+                train_data,
+                batch_size=BATCH_SIZE,
+                block_size=BLOCK_SIZE
+            )
+
+            X = X.to(device)
+            Y = Y.to(device)
+
+            optimizer.zero_grad(set_to_none=True)
+
+            logits, loss = model(X, Y)
+
+            loss.backward()
+            optimizer.step()
+
+            # 現在のTraining Lossを表示
+            if (step + 1) % 10 == 0:
+                print(
+                    f"Step {step+1}/{MAX_STEPS} | "
+                    f"Batch Loss: {loss.item():.4f}"
+                )
+
+            # 100ステップごとに評価
+            if (step + 1) % EVALINTERVAL == 0:
+                losses = estimate_loss(
+                    model=model,
+                    train_data=train_data,
+                    val_data=val_data,
+                    batch_size=BATCH_SIZE,
+                    block_size=BLOCK_SIZE,
+                    eval_iters=EVAL_ITERS,
+                    device=device
+                )
+
+                train_loss = losses["train"]
+                val_loss = losses["val"]
+
+                # CSVに記録
+                writer.writerow([
+                    step + 1,
+                    train_loss,
+                    val_loss
+                ])
+                f.flush()
+
+                print(
+                    f"[Evaluation] Step {step+1}/{MAX_STEPS} | "
+                    f"Train Loss: {train_loss:.4f} | "
+                    f"Val Loss: {val_loss:.4f}"
+                )
+
+    save_path = Path(f"artifacts/checkpoints/minigpt_step{MAX_STEPS:06d}.pt")
     save_path.parent.mkdir(parents=True, exist_ok=True)
 
     checkpoint = {

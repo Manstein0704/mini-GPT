@@ -51,15 +51,16 @@ def main():
     log_path = Path("artifacts/logs/loss.csv")
     log_path.parent.mkdir(parents=True, exist_ok=True)
     
+    model_config = {
+        "vocab_size": 8000,
+        "embed_dim": 512,
+        "block_size": BLOCK_SIZE,
+        "num_heads": 8,
+        "num_blocks": 8,
+        "dropout": 0.1,
+    }
 
-    model = GPTLanguageModel(
-        vocab_size=8000,
-        embed_dim=512,
-        block_size=BLOCK_SIZE,
-        num_heads=8,
-        num_blocks=8,
-        dropout=0.1
-    ).to(device)
+    model = GPTLanguageModel(**model_config).to(device)
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -136,13 +137,12 @@ def main():
         "optimizer_state_dict": optimizer.state_dict(),
         "step": MAX_STEPS,
         "loss": loss.item(),
-        "config": {
-            "vocab_size": 8000,
-            "embed_dim": 256,
-            "block_size": BLOCK_SIZE,
-            "num_heads": 4,
-            "num_blocks": 4,
-            "dropout": 0.1,
+        "config": model_config,
+        "training_config": {
+            "batch_size": BATCH_SIZE,
+            "learning_rate": LEARNING_RATE,
+            "max_steps": MAX_STEPS,
+            "seed": SEED,
         },
     }
 
